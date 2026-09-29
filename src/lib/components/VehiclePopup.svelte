@@ -3,6 +3,7 @@
 	import { PUBLIC_API_BASE_URL } from '$env/static/public';
 	import { titleCaseHeadsign, titleCase } from '$lib/utils/strings';
 	import { getReadableAgencyName } from '$lib/utils/agencyNames';
+	import { graphqlRequest } from '$lib/graphql';
 
 	let {
 		selectedVehicle = null,
@@ -18,7 +19,8 @@
 		formatTime = (time: string) => time,
 		hexToRgba = (hex: string, alpha: number) => '',
 		tripSchedule = null as any[] | null,
-		lastFetchTime = null as number | null
+		lastFetchTime = null as number | null,
+		apiBaseUrl = PUBLIC_API_BASE_URL
 	}: {
 		selectedVehicle?: any | null;
 		agencies: Map<number, any>;
@@ -34,6 +36,7 @@
 		hexToRgba?: (hex: string, alpha: number) => string;
 		tripSchedule?: any[] | null;
 		lastFetchTime?: number | null;
+		apiBaseUrl?: string;
 	} = $props();
 
 	let now = $state(Date.now());
@@ -94,6 +97,54 @@
 	});
 
 	let isStopsOpen = $state(false);
+
+	// Live times per stop, by stop_sequence: what happened at stops already passed, the prediction
+	// at the rest. Null on a server without tripPredictions(includePassed:), which leaves the timetable.
+	let tripLive: Map<number, any> | null = $state(null);
+	let tripLiveId: string | null = null;
+
+	async function loadTripLive(tripId: string) {
+		try {
+			const result = await graphqlRequest<{ tripPredictions: any[] }>(
+				apiBaseUrl,
+				`query($tripId: String!) { tripPredictions(tripId: $tripId, includePassed: true) { stop_sequence stop_id arrival_timestamp departure_timestamp passed actual { arrival departure } last_predicted { arrival departure } hold { stop release } } }`,
+				{ tripId }
+			);
+			if (selectedVehicle?.trip_id !== tripId) return;
+			tripLive = new Map((result.tripPredictions || []).map((p: any) => [p.stop_sequence, p]));
+		} catch {
+			if (tripLiveId === tripId) tripLive = null;
+		}
+	}
+
+	$effect(() => {
+		const tripId = selectedVehicle?.trip_id;
+		void lastFetchTime;
+		if (tripId !== tripLiveId) tripLive = null;
+		tripLiveId = tripId || null;
+		if (tripId) loadTripLive(tripId);
+	});
+
+	function clock(timestamp: number): string {
+		return new Date(timestamp * 1000).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+	}
+
+	function liveTime(stop: any): string | null {
+		const p = tripLive?.get(stop.stop_sequence);
+		if (!p) return null;
+		if (p.passed) {
+			const t =
+				p.actual?.arrival ?? p.actual?.departure ?? p.last_predicted?.arrival ?? p.last_predicted?.departure;
+			return t ? clock(t) : null;
+		}
+		const arrives = p.arrival_timestamp || p.departure_timestamp;
+		if (!arrives) return null;
+		if (p.hold?.stop) {
+			const departs = Math.max(p.departure_timestamp || 0, p.hold.release || 0);
+			if (departs - arrives >= 60) return `arr ${clock(arrives)} · dep ${clock(departs)}`;
+		}
+		return clock(arrives);
+	}
 
 	let isVehiclePinned = $derived(
 		selectedVehicle ? pinnedVehicleIds.includes(selectedVehicle.unique_id) : false
@@ -229,7 +280,10 @@
 					{@const isNext = nextStopIndex >= 0 && i === nextStopIndex}
 					<div class="stop-item" class:passed={isPassed} class:next={isNext}>
 						<span class="stop-name">{stop.stop_name}</span>
-						<span class="stop-time">{formatTime(stop.arrival_time)}</span>
+						<span class="stop-time">
+							{#if liveTime(stop)}<b class="live-time">{liveTime(stop)}</b>{/if}
+							{formatTime(stop.arrival_time || stop.departure_time)}
+						</span>
 					</div>
 				{/each}
 			</div>
@@ -669,6 +723,11 @@
 		color: #6b7280;
 		flex-shrink: 0;
 		font-size: 11px;
+	}
+
+	.live-time {
+		color: #111827;
+		margin-right: 4px;
 	}
 
 	.status-rows {

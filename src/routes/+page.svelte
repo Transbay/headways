@@ -1400,10 +1400,15 @@
 		stopIsClosing = false;
 		stopDepartures = null;
 		try {
+			const departuresQuery = (extra: string) =>
+				`query($stopId: String!) { stop(stopId: $stopId) { stop_id stop_name departures { route_id route_short_name trip_headsign departure_time departure_timestamp${extra} } } }`;
+			// Hold fields are newer than some servers; fall back to the plain board without them.
 			const result = await graphqlRequest<{ stop: any }>(
 				apiBaseUrl,
-				`query($stopId: String!) { stop(stopId: $stopId) { stop_id stop_name departures { route_id route_short_name trip_headsign departure_time departure_timestamp trip_id } } }`,
+				departuresQuery(' trip_id arrival_timestamp held hold { stop release }'),
 				{ stopId: stop.group_id }
+			).catch(() =>
+				graphqlRequest<{ stop: any }>(apiBaseUrl, departuresQuery(' trip_id'), { stopId: stop.group_id })
 			);
 			const detail = result.stop;
 			if (!detail || selectedStop?.stop_id !== stop.stop_id) return;
@@ -1907,6 +1912,7 @@
 			{hexToRgba}
 			{tripSchedule}
 			{lastFetchTime}
+			{apiBaseUrl}
 		/>
 	{/if}
 

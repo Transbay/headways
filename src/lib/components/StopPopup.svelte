@@ -38,6 +38,17 @@
 		return `${Math.floor(mins / 60)}h ${mins % 60}m`;
 	}
 
+	function clock(timestamp: number): string {
+		return new Date(timestamp * 1000).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+	}
+
+	// "arr 10:02 · waits until 10:08" where the vehicle is held here.
+	function holdText(d: any): string | null {
+		if (!(d.held || d.hold?.stop) || !d.hold?.release) return null;
+		const arrives = d.arrival_timestamp ? `arr ${clock(d.arrival_timestamp)} · ` : '';
+		return `${arrives}waits until ${clock(d.hold.release)}`;
+	}
+
 	function formatTime(timeString: string): string {
 		if (!timeString) return '';
 		const parts = timeString.split(':');
@@ -76,7 +87,10 @@
 						<span class="route-badge" style={`background:${d.color};`}>
 							{d.route_short_name}
 						</span>
-						<span class="headsign">{titleCaseHeadsign(d.trip_headsign)}</span>
+						<span class="headsign">
+							{titleCaseHeadsign(d.trip_headsign)}
+							{#if holdText(d)}<small class="hold">{holdText(d)}</small>{/if}
+						</span>
 						<span class="when">
 							<span class="scheduled">{formatTime(d.departure_time)}</span>
 							<b class="countdown">{countdownText(d.departure_timestamp)}</b>
@@ -292,6 +306,12 @@
 		text-overflow: ellipsis;
 		white-space: nowrap;
 		color: #111827;
+	}
+
+	.hold {
+		display: block;
+		color: #6b7280;
+		font-size: 11px;
 	}
 
 	.when {
