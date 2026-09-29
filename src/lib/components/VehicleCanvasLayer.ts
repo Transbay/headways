@@ -33,6 +33,13 @@ export function createVehicleCanvasLayer(L: any) {
 		_onClickCallback: null as ((id: string) => void) | null,
 		_mouseDownX: 0,
 		_mouseDownY: 0,
+		_zoom: null as {
+			fromZoom: number;
+			fromCenter: number;
+			toZoom: number;
+			toCenter: number;
+			start: number;
+		} | null,
 
 		onAdd(map: any) {
 			const container = map.getContainer();
@@ -68,6 +75,8 @@ export function createVehicleCanvasLayer(L: any) {
 			container.addEventListener('click', this._handleClick, true);
 			container.addEventListener('mousemove', this._handleMouseMove);
 
+			map.on('zoomanim', this._onZoomAnim, this);
+			map.on('zoomend', this._onZoomEnd, this);
 			map.on('move zoom', this._scheduleRedraw, this);
 			map.on('zoomend resize', this._onResize, this);
 			this._onResize();
@@ -179,6 +188,22 @@ export function createVehicleCanvasLayer(L: any) {
 			}
 		},
 
+		_onZoomAnim(e: any) {
+			this._zoom = {
+				fromZoom: this._map.getZoom(),
+				fromCenter: this._map.getCenter(),
+				toZoom: e.zoom,
+				toCenter: e.center,
+				start: performance.now()
+			};
+			this._startLoop();
+		},
+
+		_onZoomEnd() {
+			this._zoom = null;
+			this._scheduleRedraw();
+		},
+
 		_onResize() {
 			if (!this._canvas || !this._map) return;
 			const container = this._map.getContainer();
@@ -218,7 +243,7 @@ export function createVehicleCanvasLayer(L: any) {
 
 			this._draw();
 
-			if (anyActive) {
+			if (anyActive || this._zoom) {
 				this._raf = requestAnimationFrame(this._tick);
 			} else {
 				this._running = false;
@@ -251,6 +276,16 @@ export function createVehicleCanvasLayer(L: any) {
 			ctx.save();
 			ctx.scale(pr, pr);
 
+			const zoom = this._zoom;
+			const zt = zoom ? 1 - Math.pow(1 - Math.min((now - zoom.start) / 250, 1), 3) : 0;
+			const half = map.getSize().divideBy(2);
+
+			let c0, c1;
+			if (zoom) {
+				c0 = map.project(zoom.fromCenter, zoom.fromZoom);
+				c1 = map.project(zoom.toCenter, zoom.toZoom);
+			}
+
 			for (const v of this._vehicles) {
 				let lat = v.lat;
 				let lon = v.lon;
@@ -265,7 +300,15 @@ export function createVehicleCanvasLayer(L: any) {
 				const ll = L.latLng(lat, lon);
 				if (!bounds.contains(ll)) continue;
 
-				const p = map.latLngToContainerPoint(ll);
+				let p;
+				if (zoom) {
+					const p0 = map.project(ll, zoom.fromZoom).subtract(c0).add(half);
+					const p1 = map.project(ll, zoom.toZoom).subtract(c1).add(half);
+					p = L.point(p0.x + (p1.x - p0.x) * zt, p0.y + (p1.y - p0.y) * zt);
+				} else {
+					p = map.latLngToContainerPoint(ll);
+				}
+
 				const rx = p.x - ICON_W2;
 				const ry = p.y - ICON_H2;
 
