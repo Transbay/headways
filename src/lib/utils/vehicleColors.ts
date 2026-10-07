@@ -65,6 +65,11 @@ export function getVehicleColorForAgency(
       'RED': '#FF2B0A',
       'GRAY': '#8C8C88'
     },
+    'sacramento regional transit': {
+      Blue: '#0072BC',
+      Gold: '#EED211',
+      Green: '#00A651'
+    },
     'san diego mts': {
       'Blue Line': '#0070BF',
       'Green Line': '#32BB6A',
@@ -122,6 +127,18 @@ export function getVehicleColorForAgency(
     'altamont corridor express': '#78217D',
     'vacaville city coach': '#19A1DB',
     'union city transit': '#141972',
+    // Beyond 511, merged by the API
+    'stanford marguerite shuttle': '#8C1515',
+    'university of california, san francisco': '#052049',
+    genentech: '#1E5AD4',
+    'santa cruz metro': '#003D6B',
+    'monterey-salinas transit': '#0061A8',
+    unitrans: '#ED1C24',
+    'mendocino transit authority': '#36985F',
+    'the s': '#00A9A3',
+    'san joaquin regional transit district (rtd)': '#49A942',
+    'gold runner': '#D9A21B',
+    'tracer bus service': '#1864AC',
     // Sacramento
     'sacramento regional transit': '#002469',
     'sacrt (elk grove)': '#F6AE1B',

@@ -13,6 +13,14 @@ export const agencyNameMap: Record<string, string> = {
   'sfo airport': 'SFO',
   'dumbarton express consortium': 'Dumbarton Express',
   'bay area rapid transit': 'BART',
+  'university of california, san francisco': 'UCSF Shuttles',
+  'monterey-salinas transit': 'MST',
+  'mendocino transit authority': 'Mendocino Transit',
+  'the s': 'StaRT',
+  'san joaquin regional transit district (rtd)': 'San Joaquin RTD',
+  'sacramento regional transit': 'SacRT',
+  'sacrt (elk grove)': 'SacRT Elk Grove',
+  'tracer bus service': 'TRACER',
 };
 
 export function getReadableAgencyName(agencyName: string | null | undefined): string {
