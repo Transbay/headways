@@ -100,6 +100,8 @@
 	});
 
 	interface TransitVehicle {
+		/** Placed by the timetable (SacRT light rail): where it should be, not where it was seen. */
+		scheduled?: boolean;
 		op_agency: number;
 		agency: number;
 		agency_code: string;
@@ -284,7 +286,7 @@
 					vehicleFeed: { fetchedAt: string; data: { entity: any[] } };
 				}>(
 					apiBaseUrl,
-					`query($region: String) { vehicleFeed(region: $region) { fetchedAt data { entity { id vehicle { trip { tripId routeId directionId delay tripInfoFound tripHeadsign serviceId shapeId blockId tripShortName } position { latitude longitude bearing speed } timestamp stopId currentStopSequence occupancyStatus stopName vehicle { id label } vehicleYear vehicleMake vehicleModel vehicleFuel vehicleLength vehicleIconCode routeShortName } } } } }`,
+					`query($region: String) { vehicleFeed(region: $region) { fetchedAt data { entity { id vehicle { trip { tripId routeId directionId delay tripInfoFound tripHeadsign serviceId shapeId blockId tripShortName } position { latitude longitude bearing speed } timestamp stopId currentStopSequence occupancyStatus stopName scheduled vehicle { id label } vehicleYear vehicleMake vehicleModel vehicleFuel vehicleLength vehicleIconCode routeShortName } } } } }`,
 					{ region: region.arg }
 				);
 			} catch (error) {
@@ -382,6 +384,7 @@
 					length: vehicle.vehicleLength || 0,
 					icon_code: vehicle.vehicleIconCode || '',
 					short_headsign: trip.tripHeadsign || '',
+					scheduled: vehicle.scheduled === true,
 					region: region.arg
 				});
 			}
@@ -1244,10 +1247,12 @@
 				unique_id: v.unique_id,
 				lat: v.lat,
 				lon: v.lon,
+				// A scheduled train has no delay to colour by, so it keeps its line's colour.
 				backgroundColor:
-					colorMode === 'timeliness'
+					colorMode === 'timeliness' && !v.scheduled
 						? getTimelinessColor(v.deviation)
 						: getVehicleColorForAgency(v.route_short_name, agencies.get(v.agency)?.name),
+				scheduled: v.scheduled === true,
 				routeNumber: getDisplayName(v, agencies.get(v.agency), routes.get(v.route_id)),
 				routeTooltip: routes.get(v.route_id)?.route_long_name
 					? `${routes.get(v.route_id)?.route_short_name} - ${routes.get(v.route_id)?.route_long_name}`

@@ -238,7 +238,9 @@
 						<div class="route-long-name">{routeLongName}</div>
 					{/if}
 					<div class="headsign">{headsign}</div>
-					{#if relativeTimeText}
+					{#if selectedVehicle?.scheduled}
+						<div class="data-age">Scheduled · not tracked</div>
+					{:else if relativeTimeText}
 						<div class="data-age">{relativeTimeText}</div>
 					{/if}
 				</div>
