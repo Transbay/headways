@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { getVehicleColorForAgency } from '$lib/utils/vehicleColors';
+	import { getVehicleColorForAgency, needsDarkInk } from '$lib/utils/vehicleColors';
 	interface VehicleProps {
 		op_agency: number;
 		agency: number;
@@ -136,6 +136,8 @@
 			? getTimelinessColor(vehicle.deviation)
 			: getVehicleColorForAgency(vehicle.route_short_name, agency?.name)
 	);
+	// Dark text on bright fills (BART yellow, UCSF lime), as the iOS app does.
+	const textColor = $derived(needsDarkInk(backgroundColor) ? '#111111' : 'white');
 
 	function isTrain(agency?: Agency): boolean {
 		if (!agency?.name) return false;
@@ -198,7 +200,7 @@
 
 <div
 	class="vehicle"
-	style="background-color: {backgroundColor}; font-size: {fontSize};"
+	style="background-color: {backgroundColor}; color: {textColor}; font-size: {fontSize};"
 	title={routeTooltip}
 >
 	{routeNumber}

@@ -1,3 +1,14 @@
+/** Whether text on a #RRGGBB fill should be dark: Rec. 709 luma above 0.62, as in the iOS app. */
+export function needsDarkInk(hex: string): boolean {
+  const m = /^#?([0-9a-f]{6})$/i.exec(hex.trim());
+  if (!m) return false;
+  const n = parseInt(m[1], 16);
+  const r = ((n >> 16) & 0xff) / 255;
+  const g = ((n >> 8) & 0xff) / 255;
+  const b = (n & 0xff) / 255;
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b > 0.62;
+}
+
 export function getVehicleColorForAgency(
   routeShortName: string | null | undefined,
   agencyName?: string | null
@@ -69,6 +80,27 @@ export function getVehicleColorForAgency(
       Blue: '#0072BC',
       Gold: '#EED211',
       Green: '#00A651'
+    },
+    'university of california, san francisco': {
+      BL: '#2E17FF',
+      BZ: '#FF963B',
+      CH: '#D93030',
+      GD: '#FFDB29',
+      GN: '#4CA800',
+      GY: '#8B8C87',
+      LI: '#B18CFE',
+      LM: '#29FF21',
+      NV: '#0042AA',
+      OR: '#FF6600',
+      PK: '#FF73BE',
+      RD: '#FF2121',
+      VA: '#000000'
+    },
+    genentech: {
+      '0EX': '#770303',
+      '1GP': '#FFE53D',
+      '2SSFC': '#FFE53D',
+      '3OP': '#FFE53D'
     },
     'san diego mts': {
       'Blue Line': '#0070BF',
