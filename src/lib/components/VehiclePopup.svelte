@@ -11,7 +11,6 @@
 		routes,
 		isClosing = false,
 		getAgencyLogo = () => null,
-		getVehicleColorForAgency = () => '#e5e7eb',
 		pinnedVehicleIds = [] as string[],
 		togglePin = () => {},
 		pinDisabled = false,
@@ -27,7 +26,6 @@
 		routes: Map<string, any>;
 		isClosing?: boolean;
 		getAgencyLogo?: (agency: any, vehicle: any) => string | null;
-		getVehicleColorForAgency?: (routeShortName: string, agencyName?: string) => string;
 		pinnedVehicleIds?: string[];
 		togglePin?: (vehicle: any) => void;
 		pinDisabled?: boolean;

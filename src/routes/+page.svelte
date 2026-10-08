@@ -536,7 +536,7 @@
 			agencyName: getReadableAgencyName(agency?.name) || 'Unknown agency',
 			nextStop: vehicle.next_stop_name || '—',
 			deviationText: formatDeviation(vehicle.deviation),
-			routeColorHex: getVehicleColorForAgency(vehicle.route_short_name, agency?.name)
+			routeColorHex: getVehicleColorForAgency(vehicle.route_short_name, agency)
 		};
 	}
 
@@ -924,7 +924,7 @@
 
 		try {
 			const agency = agencies.get(vehicle.agency);
-			const routeColor = getVehicleColorForAgency(vehicle.route_short_name, agency?.name);
+			const routeColor = getVehicleColorForAgency(vehicle.route_short_name, agency);
 
 			const shapePromise = fetchShapeForVehicle(vehicle, signal);
 			const tripPromise = fetchTripData(vehicle.agency, vehicle.trip_id, vehicle.region, signal);
@@ -1251,7 +1251,7 @@
 				backgroundColor:
 					colorMode === 'timeliness' && !v.scheduled
 						? getTimelinessColor(v.deviation)
-						: getVehicleColorForAgency(v.route_short_name, agencies.get(v.agency)?.name),
+						: getVehicleColorForAgency(v.route_short_name, agencies.get(v.agency)),
 				scheduled: v.scheduled === true,
 				routeNumber: getDisplayName(v, agencies.get(v.agency), routes.get(v.route_id)),
 				routeTooltip: routes.get(v.route_id)?.route_long_name
@@ -1336,7 +1336,10 @@
 						stop_name: s.group_name || s.group_id,
 						stop_lat: parseFloat(s.stop_lat),
 						stop_lon: parseFloat(s.stop_lon),
-						color: getVehicleColorForAgency(routeShortName, agencyName)
+						color: getVehicleColorForAgency(routeShortName, {
+							code: agencyCode,
+							name: agencyName
+						})
 					});
 				}
 			}
@@ -1428,7 +1431,13 @@
 						break;
 					}
 				}
-				return { ...d, color: getVehicleColorForAgency(d.route_short_name, agencyName) };
+				return {
+					...d,
+					color: getVehicleColorForAgency(d.route_short_name, {
+						code: routeCode,
+						name: agencyName
+					})
+				};
 			});
 
 			// The departures API only returns upcoming service, so the vehicle
@@ -1459,7 +1468,10 @@
 						departure_time: time,
 						departure_timestamp: Math.floor(ts.getTime() / 1000),
 						trip_id: veh.trip_id,
-						color: getVehicleColorForAgency(veh.route_short_name, agencyName)
+						color: getVehicleColorForAgency(veh.route_short_name, {
+							code: routeCode,
+							name: agencyName
+						})
 					});
 				}
 			}
@@ -1830,10 +1842,7 @@
 
 					{#if displayVehicle}
 						{@const agency = agencies.get(displayVehicle.agency)}
-						{@const cardColor = getVehicleColorForAgency(
-							displayVehicle.route_short_name,
-							agency?.name
-						)}
+						{@const cardColor = getVehicleColorForAgency(displayVehicle.route_short_name, agency)}
 						<div class="pinned-item">
 							<button
 								class="pinned-main"
@@ -1909,7 +1918,6 @@
 			{isClosing}
 			{pinDisabled}
 			{getAgencyLogo}
-			{getVehicleColorForAgency}
 			{pinnedVehicleIds}
 			{togglePin}
 			{closeBottomSheet}

@@ -134,7 +134,7 @@
 	const backgroundColor = $derived(
 		colorMode === 'timeliness'
 			? getTimelinessColor(vehicle.deviation)
-			: getVehicleColorForAgency(vehicle.route_short_name, agency?.name)
+			: getVehicleColorForAgency(vehicle.route_short_name, agency)
 	);
 	// Dark text on bright fills (BART yellow, UCSF lime), as the iOS app does.
 	const textColor = $derived(needsDarkInk(backgroundColor) ? '#111111' : 'white');
