@@ -1,3 +1,5 @@
+import { needsDarkInk } from '$lib/utils/vehicleColors';
+
 const ICON_W = 24;
 const ICON_H = 26;
 const ICON_W2 = ICON_W / 2;
@@ -322,7 +324,7 @@ export function createVehicleCanvasLayer(L: any) {
 				const text = v.routeNumber;
 				const fontSize = text.length > 3 ? 7 : 10;
 				ctx.font = `bold ${fontSize}px Helvetica, sans-serif`;
-				ctx.fillStyle = 'white';
+				ctx.fillStyle = needsDarkInk(v.backgroundColor) ? '#111111' : 'white';
 				ctx.textAlign = 'center';
 				ctx.textBaseline = 'middle';
 				ctx.fillText(text, p.x, p.y + 1);

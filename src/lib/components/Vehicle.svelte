@@ -134,7 +134,7 @@
 	const backgroundColor = $derived(
 		colorMode === 'timeliness'
 			? getTimelinessColor(vehicle.deviation)
-			: getVehicleColorForAgency(vehicle.route_short_name, agency?.name)
+			: getVehicleColorForAgency(vehicle.route_short_name, agency)
 	);
 
 	function isTrain(agency?: Agency): boolean {
