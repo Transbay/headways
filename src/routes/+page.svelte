@@ -8,6 +8,7 @@
 	import { PUBLIC_API_BASE_URL } from '$env/static/public';
 	import { graphqlRequest } from '$lib/graphql';
 	import { getVehicleColorForAgency } from '$lib/utils/vehicleColors';
+	import { createVehicleEaser } from '$lib/utils/vehicleEasing';
 	import { titleCaseHeadsign } from '$lib/utils/strings';
 	import { getReadableAgencyName } from '$lib/utils/agencyNames';
 	import {
@@ -26,6 +27,7 @@
 	let L: any;
 	let vehicleCanvasLayer: any;
 	let updateInterval: NodeJS.Timeout;
+	let easeInterval: NodeJS.Timeout;
 	let agenciesInterval: NodeJS.Timeout;
 	let agencies: Map<number, any> = new Map();
 	let routes: Map<string, any> = new Map();
@@ -102,6 +104,8 @@
 	interface TransitVehicle {
 		/** Placed by the timetable (SacRT light rail): where it should be, not where it was seen. */
 		scheduled?: boolean;
+		/** Metres along the trip's shape at the last ping. */
+		shape_dist: number | null;
 		op_agency: number;
 		agency: number;
 		agency_code: string;
@@ -286,7 +290,7 @@
 					vehicleFeed: { fetchedAt: string; data: { entity: any[] } };
 				}>(
 					apiBaseUrl,
-					`query($region: String) { vehicleFeed(region: $region) { fetchedAt data { entity { id vehicle { trip { tripId routeId directionId delay tripInfoFound tripHeadsign serviceId shapeId blockId tripShortName } position { latitude longitude bearing speed } timestamp stopId currentStopSequence occupancyStatus stopName scheduled vehicle { id label } vehicleYear vehicleMake vehicleModel vehicleFuel vehicleLength vehicleIconCode routeShortName } } } } }`,
+					`query($region: String) { vehicleFeed(region: $region) { fetchedAt data { entity { id vehicle { trip { tripId routeId directionId delay tripInfoFound tripHeadsign serviceId shapeId blockId tripShortName } position { latitude longitude bearing speed } timestamp stopId currentStopSequence occupancyStatus stopName scheduled vehicle { id label } vehicleYear vehicleMake vehicleModel vehicleFuel vehicleLength vehicleIconCode routeShortName shapeDistTraveled } } } } }`,
 					{ region: region.arg }
 				);
 			} catch (error) {
@@ -385,6 +389,7 @@
 					icon_code: vehicle.vehicleIconCode || '',
 					short_headsign: trip.tripHeadsign || '',
 					scheduled: vehicle.scheduled === true,
+					shape_dist: vehicle.shapeDistTraveled ?? null,
 					region: region.arg
 				});
 			}
@@ -888,6 +893,15 @@
 		}, 200);
 	}
 
+	async function fetchShapeById(shapeId: string): Promise<number[][]> {
+		const result = await graphqlRequest<{ shape: number[][] }>(
+			apiBaseUrl,
+			`query($shapeId: String!) { shape(shapeId: $shapeId) }`,
+			{ shapeId }
+		);
+		return (result.shape || []).map((c: number[]) => [c[0], c[1]]);
+	}
+
 	async function fetchShapeForVehicle(
 		vehicle: TransitVehicle,
 		signal?: AbortSignal
@@ -1237,10 +1251,15 @@
 		return v.route_short_name || v.vehicle_id || '?';
 	}
 
+	const EASE_TICK_MS = 2500;
+	const easeVehicles = createVehicleEaser((shapeId) => fetchShapeById(shapeId));
+
 	function updateVehicleMarkers(vehicles: TransitVehicle[]) {
 		if (!vehicleCanvasLayer) return;
 
-		const filtered = vehicles.filter((v) => matchesSearch(v) && matchesFilters(v));
+		const filtered = easeVehicles(vehicles, Date.now() / 1000, EASE_TICK_MS / 1000).filter(
+			(v) => matchesSearch(v) && matchesFilters(v)
+		);
 		const canvasVehicles = filtered
 			.filter((v) => v.lat && v.lon)
 			.map((v) => ({
@@ -1570,6 +1589,7 @@
 			await updateTransitData();
 			loading = false;
 			updateInterval = setInterval(updateTransitData, 10000);
+			easeInterval = setInterval(() => updateVehicleMarkers(allVehicles), EASE_TICK_MS);
 
 			// Rehydrate Live Activities for pinned vehicles across app launches
 			// (the native plugin is idempotent by uniqueId).
@@ -1638,6 +1658,9 @@
 		}
 		if (updateInterval) {
 			clearInterval(updateInterval);
+		}
+		if (easeInterval) {
+			clearInterval(easeInterval);
 		}
 
 		if (agenciesInterval) {
